@@ -1,0 +1,172 @@
+Sub CopyF()
+Dim i, j, k, lngLastRow As Long
+
+'This Macro is used to combine multiple sources of data based on Program name, Season and Episode to identify what was watched live and what was watched on demand
+
+'This Counts how many files we gathered from Numeris and is used to track the current month
+
+Dim FolderPath As String, path As String, count As Integer
+    FolderPath = Application.ActiveWorkbook.path & "\ODM Reports"
+    path = FolderPath & "\*.xls"
+    Filename = Dir(path)
+    Do While Filename <> ""
+       count = count + 1
+        Filename = Dir()
+    Loop
+Worksheets("Months Order").Range("C2:C13").Formula = "=IF(B2=" & count & ",1,0)"
+
+
+'Clear the content of the tabs
+Worksheets("InfosysData").Rows("2:" & Rows.count).ClearContents
+Worksheets("Current Season Data").Rows("2:" & Rows.count).ClearContents
+Worksheets("ShowingSameWeek").Rows("2:" & Rows.count).ClearContents
+
+'Bring Data from Raw to Date
+
+ Worksheets("RawData").Range("A:J").Copy
+ 
+
+Worksheets("InfosysData").Range("A:J").PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+:=False, Transpose:=False
+
+
+Worksheets("InfoSysData").Range("K2:K" & Worksheets("InfoSysData").Columns("A").End(xlDown).Row).Formula = "=VLOOKUP(C2,'Days to Week'!A:B,2,FALSE)"
+
+' Get the Season Number and episode number
+
+Worksheets("InfoSysData").Range("L2:L" & Worksheets("InfoSysData").Columns("A").End(xlDown).Row).Formula = "=IF(VLOOKUP($A2,'Show Format'!$A:$H,8,FALSE)=""*12"",LEFT($H2,1),IF(VLOOKUP($A2,'Show Format'!$A:$H,8,FALSE)=""*22"",LEFT($H2,2),IF(VLOOKUP($A2,'Show Format'!$A:$H,8,FALSE)=""*23"",LEFT($H2,2),IF(VLOOKUP($A2,'Show Format'!$A:$H,8,FALSE)=""*48"",MID($H2,3,2),FALSE))))"
+Worksheets("InfoSysData").Range("M2:M" & Worksheets("InfoSysData").Columns("A").End(xlDown).Row).Formula = "=IF(VLOOKUP($A2,'Show Format'!$A:$H,8,FALSE)=""*12"",MID(H2,3,2),IF(VLOOKUP($A2,'Show Format'!$A:$H,8,FALSE)=""*22"",MID(H2,4,2),IF(VLOOKUP($A2,'Show Format'!$A:$H,8,FALSE)=""*23"",MID(H2,4,3),IF(VLOOKUP($A2,'Show Format'!$A:$H,8,FALSE)=""*48"",MID(H2,8,2),FALSE))))"
+'Converts the values gathere to numbers
+
+Worksheets("InfoSysData").Range("N2:N" & Worksheets("InfoSysData").Columns("A").End(xlDown).Row).Formula = "=IFERROR(VALUE(L2),0)"
+Worksheets("InfoSysData").Range("O2:O" & Worksheets("InfoSysData").Columns("A").End(xlDown).Row).Formula = "=IFERROR(VALUE(M2),0)"
+' Check proper season
+
+
+
+    Range(Selection, Selection.End(xlToRight)).Select
+    Range(Selection, Selection.End(xlDown)).Select
+    ActiveWorkbook.Worksheets("InfosysData").Sort.SortFields.Clear
+    ActiveWorkbook.Worksheets("InfosysData").Sort.SortFields.Add Key:=Range( _
+        "A2:A" & Worksheets("InfoSysData").Columns("A").End(xlDown).Row), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:= _
+        xlSortNormal
+    ActiveWorkbook.Worksheets("InfosysData").Sort.SortFields.Add Key:=Range( _
+        "H2:H" & Worksheets("InfoSysData").Columns("A").End(xlDown).Row), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:= _
+        xlSortNormal
+    ActiveWorkbook.Worksheets("InfosysData").Sort.SortFields.Add Key:=Range( _
+        "K2:K" & Worksheets("InfoSysData").Columns("A").End(xlDown).Row), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:= _
+        xlSortNormal
+    With ActiveWorkbook.Worksheets("InfosysData").Sort
+        .SetRange Range("A1:P" & Worksheets("InfoSysData").Columns("A").End(xlDown).Row)
+        .Header = xlYes
+        .MatchCase = False
+        .Orientation = xlTopToBottom
+        .SortMethod = xlPinYin
+        .Apply
+    End With
+
+
+Worksheets("InfoSysData").Range("P2:P" & Worksheets("InfoSysData").Columns("A").End(xlDown).Row).Formula = "=IFERROR(IF(VLOOKUP(A2,'Show Format'!A:B,2,FALSE)=InfosysData!N2,(IF(AND(K2=K3,H2=H3),""Same"",""Yes"")),""Wrong Season""),""No"")"
+
+
+
+
+Worksheets("InfosysData").Columns("Q:R").EntireColumn.Delete
+
+
+
+lngLastRow = Worksheets("Current Season Data").Columns(1).End(xlDown).Row
+
+'Identify which airings are of the current season
+j = Worksheets("Current Season Data").Columns(1).End(xlUp).Row
+j = j + 1
+
+For i = 2 To lngLastRow
+
+    If Worksheets("InfosysData").Range("P" & i).Value = "Yes" Or Worksheets("InfosysData").Range("P" & i).Value = "Same" Then
+        Worksheets("Current Season Data").Rows(j).Value = Worksheets("InfosysData").Rows(i).Value
+        j = j + 1
+    End If
+Next i
+
+'Take out only Program, Week Number, Season and Episode number
+Worksheets("Current Season Data").Range("A:A,K:K,L:L,M:M").Copy Worksheets("ShowingSameWeek").Range("A1")
+
+
+    
+' Remove Duplicate from the list
+    Worksheets("ShowingSameWeek").Range("$A$1:$D$" & Worksheets("ShowingSameWeek").Columns(1).End(xlDown).Row).RemoveDuplicates Columns:=Array(1, 2, 3, 4), _
+        Header:=xlYes
+
+'Bring the Live Values To The Shows are on the right season
+
+Worksheets("ShowingSameWeek").Range("E2:E" & Worksheets("ShowingSameWeek").Columns("A").End(xlDown).Row).Formula = "=SUMIFS('Current Season Data'!I:I,'Current Season Data'!A:A,ShowingSameWeek!A2,'Current Season Data'!K:K,ShowingSameWeek!B2,'Current Season Data'!L:L,ShowingSameWeek!C2,'Current Season Data'!M:M,ShowingSameWeek!D2)"
+Worksheets("ShowingSameWeek").Range("F2:F" & Worksheets("ShowingSameWeek").Columns("A").End(xlDown).Row).Formula = "=SUMIFS('Current Season Data'!J:J,'Current Season Data'!A:A,ShowingSameWeek!A2,'Current Season Data'!K:K,ShowingSameWeek!B2,'Current Season Data'!L:L,ShowingSameWeek!C2,'Current Season Data'!M:M,ShowingSameWeek!D2)"
+Worksheets("ShowingSameWeek").Range("G2:G" & Worksheets("ShowingSameWeek").Columns("A").End(xlDown).Row).Formula = "=VLOOKUP(A2,'Current Season Data'!A:G,7,FALSE)"
+
+Worksheets("ShowingSameWeek").Columns("H").Value = Worksheets("ShowingSameWeek").Columns("E").Value
+Worksheets("ShowingSameWeek").Columns("I").Value = Worksheets("ShowingSameWeek").Columns("F").Value
+Worksheets("ShowingSameWeek").Columns("J").Value = Worksheets("ShowingSameWeek").Columns("G").Value
+
+'All of them are "E" because the columns shift as you delted one
+Worksheets("ShowingSameWeek").Columns("E").EntireColumn.Delete
+Worksheets("ShowingSameWeek").Columns("E").EntireColumn.Delete
+Worksheets("ShowingSameWeek").Columns("E").EntireColumn.Delete
+
+
+
+ Range(Selection, Selection.End(xlToRight)).Select
+    Range(Selection, Selection.End(xlDown)).Select
+    ActiveWorkbook.Worksheets("ShowingSameWeek").Sort.SortFields.Clear
+    ActiveWorkbook.Worksheets("ShowingSameWeek").Sort.SortFields.Add Key:=Range( _
+        "A2:A" & Worksheets("ShowingSameWeek").Columns("A").End(xlDown).Row), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:= _
+        xlSortNormal
+    ActiveWorkbook.Worksheets("ShowingSameWeek").Sort.SortFields.Add Key:=Range( _
+        "C2:C" & Worksheets("ShowingSameWeek").Columns("A").End(xlDown).Row), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:= _
+        xlSortNormal
+    ActiveWorkbook.Worksheets("ShowingSameWeek").Sort.SortFields.Add Key:=Range( _
+        "D2:D" & Worksheets("ShowingSameWeek").Columns("A").End(xlDown).Row), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:= _
+        xlSortNormal
+    ActiveWorkbook.Worksheets("ShowingSameWeek").Sort.SortFields.Add Key:=Range( _
+        "B2:B" & Worksheets("ShowingSameWeek").Columns("A").End(xlDown).Row), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:= _
+        xlSortNormal
+    With ActiveWorkbook.Worksheets("ShowingSameWeek").Sort
+        .SetRange Range("A1:G" & Worksheets("ShowingSameWeek").Columns("A").End(xlDown).Row)
+        .Header = xlYes
+        .MatchCase = False
+        .Orientation = xlTopToBottom
+        .SortMethod = xlPinYin
+        .Apply
+    End With
+
+
+'Find all shows that were replayed in following weeks
+Worksheets("ShowingSameWeek").Range("H2:H" & Worksheets("ShowingSameWeek").Columns("A").End(xlDown).Row).Formula = "=IF(AND(A2=A1,C2=C1,D2=D1),0,1)"
+Worksheets("ShowingSameWeek").Columns("I").Value = Worksheets("ShowingSameWeek").Columns("H").Value
+
+Worksheets("ShowingSameWeek").Columns("H").EntireColumn.Delete
+
+
+
+
+
+
+k = Worksheets("Final Live Data InfoSys").Columns(1).End(xlUp).Row
+k = k + 1
+
+For i = 2 To lngLastRow
+
+    If Worksheets("ShowingSameWeek").Range("H" & i).Value = 1 Then
+        Worksheets("Final Live Data InfoSys").Rows(k).Value = Worksheets("ShowingSameWeek").Rows(i).Value
+        k = k + 1
+    End If
+Next i
+
+
+Worksheets("Final Live Data InfoSys").Columns("H").EntireColumn.Delete
+Worksheets("Final Live Data InfoSys").Range("H2:H" & Worksheets("Final Live Data InfoSys").Columns("A").End(xlDown).Row).Formula = "=VLOOKUP(B2,'Week to Month'!A:B,2,FALSE)"
+Worksheets("Final Live Data InfoSys").Range("I2:I" & Worksheets("Final Live Data InfoSys").Columns("A").End(xlDown).Row).Formula = "=SUMIFS(RawData!K:K,RawData!I:I,'Final Live Data InfoSys'!E2,RawData!J:J,'Final Live Data InfoSys'!F2)"
+
+
+MsgBox "Job's Done"
+End Sub
