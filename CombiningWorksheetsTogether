@@ -1,0 +1,217 @@
+Sub AddData()
+
+Dim wb As Workbook
+Dim ws As Worksheet
+Dim CurWs As Worksheet
+Dim Month As Variant
+Dim Cities As Variant
+Dim Year As String
+Dim LatestColumn As Integer
+Dim i As Integer
+
+'- This macro is used to go through a file with many tabs and consolidate all of the information into a single tab at the end of the workbook.
+
+
+'- location of the user input variables on the mastersheet
+
+Month = Workbooks("RadioMeterMasterSheet.xlsm").Worksheets(1).Range("C5")
+Year = Workbooks("RadioMeterMasterSheet.xlsm").Worksheets(1).Range("C6").Value
+
+'- These are the cities currentyl being tracked. Should another be added , add its name here
+
+Cities = Array("Calgary", "Edmonton", "Montreal Anglo", "Montreal Franco", "Toronto", "Vancouver")
+
+
+'-- Open  a new workbook and add a tab called Last
+
+
+For Each City In Cities
+
+
+Set wb = Workbooks.Open(ActiveWorkbook.Path & "\All Reports\Radio Meter Internet Streaming Report " & Month & Space(1) & Year & Space(1) & City & ".xlsx")
+
+
+
+Set ws = wb.Sheets.Add(After:=wb.Sheets(wb.Sheets.Count))
+ws.Name = "Last"
+
+SheetCount = wb.Sheets.Count
+
+'-- For each tab, since the information is at the exact same spot, copy those cells to the "Last" worksheet
+
+    For i = 2 To SheetCount - 2
+    
+        Worksheets(i).Range("A10").Copy
+        Worksheets(i).Range("J12:J15").PasteSpecial xlPasteValues
+        
+        Worksheets(i).Range("A12:D15").Copy
+        
+       '--Had some issues with overlapping copy/pasting data...might be due to the xlUp therefore I made sure that the first itteration of the
+       '-- loop would be on a static cell (A1)
+       
+       
+        If i = 2 Then
+        
+         Worksheets("Last").Range("A1").PasteSpecial xlPasteValues
+        
+        Else
+            Worksheets("Last").Range("A" & Worksheets("Last").Range("A65536").End(xlUp).Row + 1).PasteSpecial xlPasteValues
+        
+        End If
+        
+         
+        Worksheets(i).Range("J12:J15").Copy
+    
+        If i = 2 Then
+         Worksheets("Last").Range("E1").PasteSpecial xlPasteValues
+        
+        Else
+          Worksheets("Last").Range("E" & Worksheets("Last").Range("E65536").End(xlUp).Row + 1).PasteSpecial xlPasteValues
+        End If
+        
+
+    Next i
+
+
+
+
+    '--After itteration of all tabs add the month, year and the city - based on the variables that user inputed
+    
+    Worksheets("Last").Range("F1:F" & Worksheets("Last").Columns(1).End(xlDown).Row).Value = Month
+    Worksheets("Last").Range("G1:G" & Worksheets("Last").Columns(1).End(xlDown).Row).Value = Year
+    Worksheets("Last").Range("H1:H" & Worksheets("Last").Columns(1).End(xlDown).Row).Value = City
+    
+    
+    Worksheets("Last").Range("A1:H" & Worksheets("Last").Columns(1).End(xlDown).Row).Copy
+    
+    '- Find the last row in the master sheet and add it to the end
+    LatestColumn = Workbooks("RadioMeterMasterSheet.xlsm").Worksheets(2).Range("A1048576").End(xlUp).Row
+    
+    Workbooks("RadioMeterMasterSheet.xlsm").Worksheets(2).Range("A" & LatestColumn + 1).PasteSpecial xlPasteValues
+    
+    Application.CutCopyMode = False
+    wb.Close SaveChanges:=False
+
+Next City
+
+
+'-- This removes duplicates in the final sheet **Final**
+
+Workbooks("RadioMeterMasterSheet.xlsm").Activate
+Worksheets(2).Activate
+    ActiveSheet.Columns("A:H").Select
+   ActiveSheet.Range("A13").Activate
+    ActiveSheet.Range("$A$1:$H$" & Worksheets(2).Columns(1).End(xlDown).Row).RemoveDuplicates Columns:=Array(1, 2, 3, 4, 5, 6, 7, 8 _
+        ), Header:=xlYes
+
+
+
+'-- Get Data Control-------------------------------------------------------------------------------------------------------------------------
+
+
+
+For Each City In Cities
+
+
+Set wb = Workbooks.Open(ActiveWorkbook.Path & "\All Reports\Radio Meter Internet Streaming Report " & Month & Space(1) & Year & Space(1) & City & ".xlsx")
+
+
+
+Set ws = wb.Sheets.Add(After:=wb.Sheets(wb.Sheets.Count))
+ws.Name = "Last"
+
+SheetCount = wb.Sheets.Count
+
+'-- For each tab, since the information is at the exact same spot, copy those cells to the "Last" worksheet
+
+    For i = 2 To SheetCount - 2
+    
+        Worksheets(i).Range("A10").Copy
+        Worksheets(i).Range("J12:J15").PasteSpecial xlPasteValues
+        Worksheets(i).Range("A12:A15").Copy
+        Worksheets(i).Range("K12:K15").PasteSpecial xlPasteValues
+        
+        Worksheets(i).Range("F12:H15").Copy
+        
+        Worksheets(i).Range("L12").PasteSpecial xlPasteValues
+        Worksheets(i).Range("J12:N15").Copy
+       '--Had some issues with overlapping copy/pasting data...might be due to the xlUp therefore I made sure that the first itteration of the
+       '-- loop would be on a static cell (A1)
+       
+       
+        If i = 2 Then
+        
+         Worksheets("Last").Range("A1").PasteSpecial xlPasteValues
+        
+        Else
+            Worksheets("Last").Range("A" & Worksheets("Last").Range("A65536").End(xlUp).Row + 1).PasteSpecial xlPasteValues
+        
+        End If
+        
+         
+ '       Worksheets(i).Range("J12:K15").Copy
+  '
+   '     If i = 2 Then
+   '      Worksheets("Last").Range("D1").PasteSpecial xlPasteValues
+   '
+   '     Else
+   '       Worksheets("Last").Range("D" & Worksheets("Last").Range("E65536").End(xlUp).Row + 1).PasteSpecial xlPasteValues
+   '     End If
+        
+
+    Next i
+
+
+
+
+    '--After itteration of all tabs add the month, year and the city - based on the variables that user inputed
+    
+    Worksheets("Last").Range("F1:F" & Worksheets("Last").Columns(1).End(xlDown).Row).Value = Month
+    Worksheets("Last").Range("G1:G" & Worksheets("Last").Columns(1).End(xlDown).Row).Value = Year
+    Worksheets("Last").Range("H1:H" & Worksheets("Last").Columns(1).End(xlDown).Row).Value = City
+    
+    
+    Worksheets("Last").Range("A1:H" & Worksheets("Last").Columns(1).End(xlDown).Row).Copy
+    
+    '- Find the last row in the master sheet and add it to the end
+    LatestColumn = Workbooks("RadioMeterMasterSheet.xlsm").Worksheets(3).Range("A1048576").End(xlUp).Row
+    
+    Workbooks("RadioMeterMasterSheet.xlsm").Worksheets(3).Range("A" & LatestColumn + 1).PasteSpecial xlPasteValues
+    
+    Application.CutCopyMode = False
+    wb.Close SaveChanges:=False
+
+Next City
+
+
+'-- This removes duplicates in the final sheet **Final**
+
+Workbooks("RadioMeterMasterSheet.xlsm").Activate
+Worksheets(2).Activate
+    ActiveSheet.Columns("A:H").Select
+   ActiveSheet.Range("A13").Activate
+    ActiveSheet.Range("$A$1:$H$" & Worksheets(3).Columns(1).End(xlDown).Row).RemoveDuplicates Columns:=Array(1, 2, 3, 4, 5, 6, 7, 8 _
+        ), Header:=xlYes
+Worksheets(3).Activate
+    ActiveSheet.Columns("A:H").Select
+   ActiveSheet.Range("A13").Activate
+    ActiveSheet.Range("$A$1:$H$" & Worksheets(3).Columns(1).End(xlDown).Row).RemoveDuplicates Columns:=Array(1, 2, 3, 4, 5, 6, 7, 8 _
+        ), Header:=xlYes
+
+
+
+
+
+
+
+
+
+'-- Let user know that the macro is done
+
+MsgBox "Job Complete for the month of " & Month & Space(1) & Year
+
+
+
+End Sub
+
+
